@@ -136,12 +136,7 @@ async fn test_pause() {
         .unwrap();
 
     // filter the list of torrents for one that is actively uploading but not forced
-    let torrent = {
-        torrents
-            .into_iter()
-            .next()
-            .unwrap()
-    };
+    let torrent = { torrents.into_iter().next().unwrap() };
 
     dbg! {&torrent};
     let hash: data::Hash = (*torrent.hash()).clone();
