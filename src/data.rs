@@ -74,7 +74,7 @@ pub struct Torrent {
     auto_tmm: bool,
     category: String,
     completed: i64,
-    completion_on: u32,
+    completion_on: i32,
     dl_limit: i64,
     dlspeed: i64,
     downloaded: i64,
@@ -256,7 +256,7 @@ pub struct TorrentProperties {
 /// queuedDL 	Queuing is enabled and torrent is queued for download
 /// stalledDL 	Torrent is being downloaded, but no connection were made
 /// checkingDL 	Same as checkingUP, but torrent has NOT finished downloading
-/// forceDL 	Torrent is forced to downloading to ignore queue limit
+/// forcedDL 	Torrent is forced to downloading to ignore queue limit
 /// checkingResumeData 	Checking resume data on qBt startup
 /// moving 	Torrent is moving to another location
 /// unknown 	Unknown status
@@ -269,6 +269,8 @@ pub enum State {
     MissingFiles,
     #[serde(rename = "uploading")]
     Uploading,
+    #[serde(rename = "stoppedUP")]
+    StoppedUP,
     #[serde(rename = "pausedUP")]
     PausedUP,
     #[serde(rename = "queuedUP")]
@@ -299,7 +301,7 @@ pub enum State {
     CheckingResumeData,
     #[serde(rename = "moving")]
     Moving,
-    #[serde(rename = "unkown")]
+    #[serde(rename = "unknown")]
     Unknown,
 }
 
