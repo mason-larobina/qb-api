@@ -3,7 +3,6 @@ use super::data;
 use super::error::Error;
 use super::queries;
 use super::traits::*;
-use tokio;
 
 fn _is_send<T: Send>(_: T) {}
 fn _is_sync<T: Sync>(_: T) {}
@@ -44,7 +43,7 @@ async fn get_first_torrent() -> (Api, data::Torrent) {
         .await
         .expect("could not get torrnet list");
 
-    let torrent = if let Some(_) = torrent_list.get(0) {
+    let torrent = if torrent_list.first().is_some() {
         torrent_list.remove(0)
     } else {
         panic! {"there were no items in the torrent list to check"}
@@ -159,7 +158,7 @@ async fn test_pause() {
 
     // since new_torrent is a vector of all matches, pop off the only one inside it
     let first = new_torrent.unwrap();
-    let first = first.get(0).unwrap();
+    let first = first.first().unwrap();
 
     // check that it did indeep pause
     match first.state() {

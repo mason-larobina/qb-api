@@ -73,7 +73,7 @@ impl Category<Api> for Torrent {
 #[async_trait]
 impl TorrentData<Api> for Torrent {
     async fn properties(&self, api: &'_ Api) -> Result<TorrentProperties, Error> {
-        self.hash.properties(&api).await
+        self.hash.properties(api).await
     }
 
     async fn trackers(&self, api: &'_ Api) -> Result<Vec<Tracker>, Error> {
@@ -144,22 +144,22 @@ impl TorrentData<Api> for Hash {
 #[async_trait]
 impl TorrentData<Torrent> for Api {
     async fn properties(&self, torrent: &'_ Torrent) -> Result<TorrentProperties, Error> {
-        torrent.hash.properties(&self).await
+        torrent.hash.properties(self).await
     }
 
     async fn trackers(&self, torrent: &'_ Torrent) -> Result<Vec<Tracker>, Error> {
-        torrent.hash.trackers(&self).await
+        torrent.hash.trackers(self).await
     }
 
     async fn contents<'a>(&'a self, torrent: &'a Torrent) -> Result<Vec<TorrentInfo<'a>>, Error> {
-        torrent.hash.contents(&self).await
+        torrent.hash.contents(self).await
     }
 }
 
 #[async_trait]
 impl Resume<Api> for Torrent {
     async fn resume(&self, api: &'_ Api) -> Result<(), Error> {
-        self.hash.resume(&api).await
+        self.hash.resume(api).await
     }
 }
 
@@ -207,7 +207,7 @@ impl Resume<Api> for Vec<Hash> {
 #[async_trait]
 impl Pause<Api> for Torrent {
     async fn pause(&self, api: &'_ Api) -> Result<(), Error> {
-        self.hash.pause(&api).await
+        self.hash.pause(api).await
     }
 }
 
@@ -239,7 +239,7 @@ impl Pause<Api> for Vec<Hash> {
             .iter()
             .map(|x| {
                 let mut cln = x.hash.clone();
-                cln.push_str("|");
+                cln.push('|');
                 cln
             })
             .collect::<String>();
@@ -284,7 +284,7 @@ impl<'hash, 'tag> TagsUrlHelper<'hash, 'tag> {
 #[async_trait]
 impl Tags<Api, [String]> for Torrent {
     async fn add_tag(&self, api: &'_ Api, tags: &'_ [String]) -> Result<(), Error> {
-        self.hash.add_tag(&api, tags).await
+        self.hash.add_tag(api, tags).await
     }
 }
 

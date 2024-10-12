@@ -62,7 +62,7 @@ pub struct TorrentRequest {
 impl TorrentRequest {
     // TODO: swap this to www_url_encoding crate
     fn url(&self) -> Result<String, error::Error> {
-        let url = serde_urlencoded::to_string(&self)?;
+        let url = serde_urlencoded::to_string(self)?;
         Ok(url)
     }
     pub async fn send(self, api: &Api) -> Result<Vec<Torrent>, Error> {
@@ -70,12 +70,12 @@ impl TorrentRequest {
 
         match self.url() {
             Ok(addition) => {
-                if addition != "".to_string() {
+                if addition != *"" {
                     addr.push('?');
                     addr.push_str(&addition);
                 }
             }
-            Err(e) => return Err(Error::from(e)),
+            Err(e) => return Err(e),
         }
 
         let res = api
@@ -172,6 +172,6 @@ pub struct TorrentDownload {
 
 impl TorrentDownload {
     pub async fn download(&self, api: &Api) -> Result<(), error::Error> {
-        api.add_new_torrent(&self).await
+        api.add_new_torrent(self).await
     }
 }

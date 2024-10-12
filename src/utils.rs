@@ -6,13 +6,13 @@ pub trait QueryConcat {
 
 impl QueryConcat for Hash {
     fn query_concat(&self, _: char) -> String {
-        return self.hash.to_string();
+        self.hash.to_string()
     }
 }
 
 impl QueryConcat for &str {
     fn query_concat(&self, _: char) -> String {
-        return self.to_string();
+        self.to_string()
     }
 }
 
