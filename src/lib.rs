@@ -1,9 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(unused_variables)]
-
-#[macro_use]
-pub(crate) mod macros;
-pub(crate) mod utils;
 
 mod api;
 pub mod data;

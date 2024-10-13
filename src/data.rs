@@ -1,6 +1,5 @@
 //! Structs returned by api queries
 
-use super::utils;
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 
@@ -463,7 +462,8 @@ pub struct Log {
     id: u64,
     message: String,
     timestamp: u64,
-    r#type: u64,
+    #[serde(rename = "type")]
+    level: u64,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default, Hash)]
@@ -471,6 +471,7 @@ pub struct Log {
 pub struct Hash {
     pub(crate) hash: String,
 }
+
 impl Hash {
     pub fn inner(self) -> String {
         self.hash
@@ -487,24 +488,5 @@ impl std::ops::Deref for Hash {
     type Target = String;
     fn deref(&self) -> &Self::Target {
         &self.hash
-    }
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub(crate) struct SerdeHashes<T: Serialize> {
-    pub(crate) hashes: T,
-}
-
-impl<'a> From<&'a Hash> for SerdeHashes<&'a String> {
-    fn from(e: &'a Hash) -> Self {
-        SerdeHashes { hashes: e }
-    }
-}
-
-impl<'a> From<&'a Vec<Hash>> for SerdeHashes<String> {
-    fn from(hashes: &'a Vec<Hash>) -> Self {
-        Self {
-            hashes: utils::QueryConcat::query_concat(&hashes.as_slice(), '|'),
-        }
     }
 }

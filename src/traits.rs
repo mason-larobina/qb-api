@@ -1,11 +1,8 @@
+use crate::api::Api;
+use crate::data::*;
+use crate::error::Error;
 use async_trait::async_trait;
-
-use serde::Serialize;
-
-use super::api::Api;
-use super::data::*;
-use super::error::Error;
-use super::utils::QueryConcat;
+use std::collections::HashMap;
 
 #[async_trait]
 pub trait TorrentData<T> {
@@ -33,6 +30,7 @@ pub trait Category<T> {
 pub trait Resume<T> {
     async fn resume(&self, other: &'_ T) -> Result<(), Error>;
 }
+
 #[async_trait]
 /// Pause a torrent
 pub trait Pause<T> {
@@ -41,31 +39,22 @@ pub trait Pause<T> {
 
 #[async_trait]
 /// Add a tag to a torrent
-pub trait Tags<T, V: ?Sized> {
-    async fn add_tag(&self, other: &'_ T, tags: &'_ V) -> Result<(), Error>;
+pub trait Tags<T> {
+    async fn add_tag(&self, other: &'_ T, tags: &[String]) -> Result<(), Error>;
 }
 
 #[async_trait]
 impl Category<Api> for Torrent {
     async fn set_category(&self, api: &'_ Api, category: &str) -> Result<(), Error> {
-        let addr = push_own!(
-            api.address,
-            "/api/v2/torrents/setCategory?hashes=",
-            &self.hash,
-            "&category=",
-            category
-        );
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hashes", self.hash.hash.as_str());
+        form.insert("category", category);
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?
-            .bytes()
-            .await?;
-        dbg! {res};
-
+            .post(api.endpoint("/api/v2/torrents/setCategory"))
+            .headers(api.headers()?));
+        let response = dbg!(request.send().await?);
+        let _data = dbg!(response.bytes().await?);
         Ok(())
     }
 }
@@ -88,55 +77,47 @@ impl TorrentData<Api> for Torrent {
 #[async_trait]
 impl TorrentData<Api> for Hash {
     async fn properties(&self, api: &'_ Api) -> Result<TorrentProperties, Error> {
-        let _hash = &self.hash;
-        let addr = push_own! {api.address, "/api/v2/torrents/properties?hash=", self};
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hash", self.hash.as_str());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?
-            .bytes()
-            .await?;
-
-        let props = serde_json::from_slice(&res)?;
+            .post(api.endpoint("/api/v2/torrents/properties"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        let data = dbg!(response.bytes().await?);
+        let props = serde_json::from_slice(&data)?;
         Ok(props)
     }
 
     async fn trackers(&self, api: &'_ Api) -> Result<Vec<Tracker>, Error> {
-        let addr = push_own! {api.address, "/api/v2/torrents/trackers?hash=", self};
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hash", self.hash.as_str());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?
-            .bytes()
-            .await?;
-
-        let trackers = serde_json::from_slice(&res)?;
+            .post(api.endpoint("/api/v2/torrents/trackers"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        let data = dbg!(response.bytes().await?);
+        let trackers = serde_json::from_slice(&data)?;
         Ok(trackers)
     }
 
     async fn contents<'a>(&'a self, api: &'a Api) -> Result<Vec<TorrentInfo<'a>>, Error> {
-        let addr = push_own! {api.address, "/api/v2/torrents/files?hash=", self};
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hash", self.hash.as_str());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?
-            .bytes()
-            .await?;
-
-        let info = serde_json::from_slice::<Vec<TorrentInfoSerde>>(&res)?
+            .post(api.endpoint("/api/v2/torrents/files"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        let data = dbg!(response.bytes().await?);
+        let info = serde_json::from_slice::<Vec<TorrentInfoSerde>>(&data)?
             .into_iter()
             .map(|x| x.into_info(self))
             .collect();
-
         Ok(info)
     }
 }
@@ -166,17 +147,15 @@ impl Resume<Api> for Torrent {
 #[async_trait]
 impl Resume<Api> for Hash {
     async fn resume(&self, api: &'_ Api) -> Result<(), Error> {
-        let _hash = &self.hash;
-        let addr = push_own! {api.address, "/api/v2/torrents/resume?hashes=", _hash};
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hashes", self.hash.as_str());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?;
-
-        match res.error_for_status() {
+            .post(api.endpoint("/api/v2/torrents/resume"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        match response.error_for_status() {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::from(e)),
         }
@@ -186,18 +165,14 @@ impl Resume<Api> for Hash {
 #[async_trait]
 impl Resume<Api> for Vec<Hash> {
     async fn resume(&self, api: &'_ Api) -> Result<(), Error> {
-        let hash_url = QueryConcat::query_concat(&self.as_slice(), '|');
-
-        let addr = push_own! {api.address, "/api/v2/torrents/resume?hashes=", &hash_url};
-
-        let res = api
+        let form = Api::hashes_form_data(self.as_ref());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?;
-
-        match res.error_for_status() {
+            .post(api.endpoint("/api/v2/torrents/resume"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        match response.error_for_status() {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::from(e)),
         }
@@ -214,17 +189,15 @@ impl Pause<Api> for Torrent {
 #[async_trait]
 impl Pause<Api> for Hash {
     async fn pause(&self, api: &'_ Api) -> Result<(), Error> {
-        let _hash = &self.hash;
-        let addr = push_own! {api.address, "/api/v2/torrents/pause?hashes=", _hash};
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hash", self.hash.as_str());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?;
-
-        match res.error_for_status() {
+            .post(api.endpoint("/api/v2/torrents/pause"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        match response.error_for_status() {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::from(e)),
         }
@@ -234,77 +207,40 @@ impl Pause<Api> for Hash {
 #[async_trait]
 impl Pause<Api> for Vec<Hash> {
     async fn pause(&self, api: &'_ Api) -> Result<(), Error> {
-        // concat all hashes together with "|" character separation
-        let mut hash_url = self
-            .iter()
-            .map(|x| {
-                let mut cln = x.hash.clone();
-                cln.push('|');
-                cln
-            })
-            .collect::<String>();
-
-        // remove the final | from the string
-        hash_url.remove(hash_url.len() - 1);
-
-        let addr = push_own! {api.address, "/api/v2/torrents/pause?hashes=", &hash_url};
-
-        let res = api
+        let form = Api::hashes_form_data(self.as_ref());
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?;
-
-        match res.error_for_status() {
+            .post(api.endpoint("/api/v2/torrents/pause"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        match response.error_for_status() {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::from(e)),
         }
     }
 }
 
-#[derive(Serialize)]
-struct TagsUrlHelper<'hash, 'tag> {
-    hashes: &'hash [&'hash Hash],
-    tags: &'tag [String],
-}
-
-impl<'hash, 'tag> TagsUrlHelper<'hash, 'tag> {
-    fn url(self) -> Result<String, Error> {
-        let mut url = String::with_capacity(25);
-        let hashes = QueryConcat::query_concat(self.hashes, '|');
-        let tags = QueryConcat::query_concat(&self.tags, ',');
-
-        push_own!(prealloc; url, "hashes=", &hashes,"&tags=", &tags);
-
-        Ok(url)
-    }
-}
-
 #[async_trait]
-impl Tags<Api, [String]> for Torrent {
+impl Tags<Api> for Torrent {
     async fn add_tag(&self, api: &'_ Api, tags: &'_ [String]) -> Result<(), Error> {
         self.hash.add_tag(api, tags).await
     }
 }
 
 #[async_trait]
-impl Tags<Api, [String]> for Hash {
+impl Tags<Api> for Hash {
     async fn add_tag(&self, api: &'_ Api, tags: &'_ [String]) -> Result<(), Error> {
-        let helper = TagsUrlHelper {
-            hashes: &[self],
-            tags,
-        };
-        let addr = push_own! {api.address, "/api/v2/torrents/addTags?", &helper.url()?};
-
-        let res = api
+        let mut form = HashMap::new();
+        form.insert("hashes", self.hash.clone());
+        form.insert("tags", tags.join(","));
+        let request = dbg!(api
             .client
-            .post(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await;
-
-        match res?.error_for_status() {
+            .post(api.endpoint("/api/v2/torrents/addTags"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        match response.error_for_status() {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::from(e)),
         }
@@ -314,14 +250,14 @@ impl Tags<Api, [String]> for Hash {
 #[async_trait]
 impl Recheck<Api> for Hash {
     async fn recheck(&self, api: &'_ Api) -> Result<(), Error> {
-        let addr = push_own!(api.address, "/api/v2/torrents/recheck?hashes=", &self.hash);
-
-        api.client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?;
-
+        let mut form = HashMap::new();
+        form.insert("hashes", self.hash.as_str());
+        let request = dbg!(api
+            .client
+            .post(api.endpoint("/api/v2/torrents/recheck"))
+            .headers(api.headers()?)
+            .form(&form));
+        let _response = dbg!(request.send().await?);
         Ok(())
     }
 }

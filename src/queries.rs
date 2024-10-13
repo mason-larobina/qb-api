@@ -1,14 +1,12 @@
 //! data types for filtering and querying information from qbittorrent
 
-use super::data::{Hash, Torrent};
-use super::error::{self, Error};
-
-use derive_builder::Builder;
-
+use crate::api::Api;
+use crate::data::{Hash, Torrent};
+use crate::error::{self, Error};
 use derive_builder;
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-
-use super::api::Api;
+use std::collections::HashMap;
 
 /// Getting log information
 #[derive(Debug, Builder, Default)]
@@ -25,10 +23,23 @@ pub struct LogRequest {
     last_known_id: u64,
 }
 
-// TODO: use serde here instead
 impl LogRequest {
-    pub(crate) fn url(&self) -> String {
-        format! {"normal={}&info={}&warning={}&critical={}&last_known_id={}", self.normal, self.info, self.warning, self.critical, self.last_known_id}
+    fn bool_to_string(b: bool) -> String {
+        if b {
+            String::from("true")
+        } else {
+            String::from("false")
+        }
+    }
+
+    pub(crate) fn to_form_data(&self) -> HashMap<&'static str, String> {
+        let mut data = HashMap::new();
+        data.insert("normal", Self::bool_to_string(self.normal));
+        data.insert("info", Self::bool_to_string(self.info));
+        data.insert("warning", Self::bool_to_string(self.warning));
+        data.insert("critical", Self::bool_to_string(self.critical));
+        data.insert("last_known_id", self.last_known_id.to_string());
+        data
     }
 }
 
@@ -47,6 +58,8 @@ pub struct TorrentRequest {
     #[builder(default)]
     category: Option<String>,
     #[builder(default)]
+    tag: Option<String>,
+    #[builder(default)]
     sort: Option<String>,
     #[builder(default)]
     reverse: Option<bool>,
@@ -55,63 +68,77 @@ pub struct TorrentRequest {
     #[builder(default)]
     offset: Option<i64>,
     #[builder(default)]
-    #[serde(rename = "hashes")]
-    // Api says this could be a vec, makes things annoying on this side
-    hash: Option<Hash>,
+    hashes: Vec<Hash>,
 }
+
 impl TorrentRequest {
-    // TODO: swap this to www_url_encoding crate
-    fn url(&self) -> Result<String, error::Error> {
-        let url = serde_urlencoded::to_string(self)?;
-        Ok(url)
-    }
     pub async fn send(self, api: &Api) -> Result<Vec<Torrent>, Error> {
-        let mut addr = push_own!(api.address, "/api/v2/torrents/info");
-
-        match self.url() {
-            Ok(addition) => {
-                if addition != *"" {
-                    addr.push('?');
-                    addr.push_str(&addition);
-                }
-            }
-            Err(e) => return Err(e),
+        let mut form = HashMap::new();
+        if let Some(filter) = &self.filter {
+            form.insert("filter", serde_json::to_string(filter)?);
         }
-
-        let res = api
+        if let Some(category) = &self.category {
+            form.insert("category", category.clone());
+        }
+        if let Some(tag) = &self.tag {
+            form.insert("tag", tag.clone());
+        }
+        if let Some(sort) = &self.sort {
+            form.insert("sort", sort.clone());
+        }
+        if let Some(reverse) = &self.reverse {
+            form.insert("reverse", serde_json::to_string(reverse)?);
+        }
+        if let Some(limit) = &self.limit {
+            form.insert("limit", limit.to_string());
+        }
+        if let Some(offset) = &self.offset {
+            form.insert("offset", offset.to_string());
+        }
+        if !self.hashes.is_empty() {
+            let refs: Vec<&str> = self.hashes.iter().map(|h| h.hash.as_str()).collect();
+            form.insert("hashes", refs.join("|"));
+        }
+        let request = dbg!(api
             .client
-            .get(&addr)
-            .headers(api.make_headers()?)
-            .send()
-            .await?
-            .bytes()
-            .await?;
-
-        let torrents: Vec<Torrent> = serde_json::from_slice(&res)?;
-
+            .post(api.endpoint("/api/v2/torrents/info"))
+            .headers(api.headers()?)
+            .form(&form));
+        let response = dbg!(request.send().await?);
+        let data = dbg!(response.bytes().await?);
+        let torrents: Vec<Torrent> = serde_json::from_slice(&data)?;
         Ok(torrents)
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 /// Filtering enum for use in making a `TorrentRequest`
 pub enum TorrentFilter {
     #[serde(rename = "all")]
+    #[default]
     All,
     #[serde(rename = "downloading")]
     Downloading,
+    #[serde(rename = "seeding")]
+    Seeding,
     #[serde(rename = "completed")]
     Completed,
     #[serde(rename = "paused")]
     Paused,
     #[serde(rename = "active")]
     Active,
-}
-
-impl Default for TorrentFilter {
-    fn default() -> Self {
-        Self::All
-    }
+    #[serde(rename = "inactive")]
+    Inactive,
+    #[serde(rename = "resumed")]
+    Resumed,
+    #[serde(rename = "stalled")]
+    Stalled,
+    #[serde(rename = "stalled_uploading")]
+    StalledUploading,
+    #[serde(rename = "stalled_downloading")]
+    StalledDownloading,
+    #[serde(rename = "errored")]
+    Errored,
 }
 
 /// Metadata for downloading magnet links and torrent files
