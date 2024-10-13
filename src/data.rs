@@ -261,7 +261,7 @@ pub struct TorrentProperties {
 /// moving 	Torrent is moving to another location
 /// unknown 	Unknown status
 /// ```
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Deserialize, Copy, Clone, Eq, PartialEq)]
 pub enum State {
     #[serde(rename = "error")]
     Error,
