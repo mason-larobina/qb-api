@@ -162,8 +162,8 @@ async fn test_pause() {
 
     // check that it did indeep pause
     match first.state() {
-        data::State::PausedDL => {}
-        data::State::PausedUP => {}
+        data::State::StoppedDL => {}
+        data::State::StoppedUP => {}
         _ => panic! {"torrent did not pause"},
     }
 
