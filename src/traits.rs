@@ -11,13 +11,13 @@ pub trait TorrentsApi {
     async fn stop(&self, api: &Api) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
-        api.post("/api/v2/torrents/stop", &form).await
+        api.post_status("/api/v2/torrents/stop", &form).await
     }
 
     async fn start(&self, api: &Api) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
-        api.post("/api/v2/torrents/start", &form).await
+        api.post_status("/api/v2/torrents/start", &form).await
     }
 
     async fn delete(&self, api: &Api, delete_data: bool) -> Result<()> {
@@ -27,46 +27,46 @@ pub trait TorrentsApi {
             "deleteFiles",
             if delete_data { "true" } else { "false" }.into(),
         );
-        api.post("/api/v2/torrents/delete", &form).await
+        api.post_status("/api/v2/torrents/delete", &form).await
     }
 
     async fn recheck(&self, api: &Api) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
-        api.post("/api/v2/torrents/recheck", &form).await
+        api.post_status("/api/v2/torrents/recheck", &form).await
     }
 
     async fn set_category(&self, api: &Api, category: &str) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
         form.insert("category", category.into());
-        api.post("/api/v2/torrents/setCategory", &form).await
+        api.post_status("/api/v2/torrents/setCategory", &form).await
     }
 
     async fn add_tags(&self, api: &Api, tags: &[String]) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
         form.insert("tags", tags.join(","));
-        api.post("/api/v2/torrents/addTags", &form).await
+        api.post_status("/api/v2/torrents/addTags", &form).await
     }
 
     async fn remove_tags(&self, api: &Api, tags: &[String]) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
         form.insert("tags", tags.join(","));
-        api.post("/api/v2/torrents/removeTags", &form).await
+        api.post_status("/api/v2/torrents/removeTags", &form).await
     }
 
     async fn bottom_priority(&self, api: &Api) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
-        api.post("/api/v2/torrents/bottomPrio", &form).await
+        api.post_status("/api/v2/torrents/bottomPrio", &form).await
     }
 
     async fn top_priority(&self, api: &Api) -> Result<()> {
         let mut form = HashMap::new();
         form.insert("hashes", self.hashes());
-        api.post("/api/v2/torrents/topPrio", &form).await
+        api.post_status("/api/v2/torrents/topPrio", &form).await
     }
 }
 
@@ -117,21 +117,19 @@ pub trait TorrentApi {
     async fn properties(&self, api: &Api) -> Result<TorrentProperties> {
         let mut form = HashMap::new();
         form.insert("hash", self.hash());
-        api.post_and_decode("/api/v2/torrents/properties", &form)
-            .await
+        api.post_decode("/api/v2/torrents/properties", &form).await
     }
 
     async fn trackers(&self, api: &Api) -> Result<Vec<Tracker>> {
         let mut form = HashMap::new();
         form.insert("hash", self.hash());
-        api.post_and_decode("/api/v2/torrents/trackers", &form)
-            .await
+        api.post_decode("/api/v2/torrents/trackers", &form).await
     }
 
     async fn contents(&self, api: &Api) -> Result<Vec<TorrentInfo>> {
         let mut form = HashMap::new();
         form.insert("hash", self.hash());
-        api.post_and_decode("/api/v2/torrents/files", &form).await
+        api.post_decode("/api/v2/torrents/files", &form).await
     }
 }
 

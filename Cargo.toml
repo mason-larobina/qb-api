@@ -1,10 +1,10 @@
 [package]
 name = "qbittorrent"
-version = "0.2.0"
-authors = ["VanillaBrooks <brooks@karlik.org>"]
+version = "0.3.0"
+authors = ["Mason Larobina <mason.larobina@pm.me>", "VanillaBrooks <brooks@karlik.org>"]
 edition = "2021"
-description = "qbittorrent web api implementation"
-repository = "https://github.com/VanillaBrooks/qbittorrent"
+description = "qBittorrent web api implementation."
+repository = "https://github.com/mason-larobina/qbittorrent"
 license = "MIT"
 
 [dependencies]
@@ -16,17 +16,6 @@ serde_urlencoded = "0.7.1"
 derive-getters = "0.5.0"
 async-trait = "0.1.83"
 thiserror = "1.0.64"
-tokio = { version=  "1.40.0", features=["macros", "rt"], optional=true }
+tokio = { version=  "1.40.0", features=["macros", "rt"] }
 url = "2.5.2"
 log = "0.4.22"
-
-[dev-dependencies]
-tokio = {version=  "1.40.0", features=["macros", "rt"]}
-
-[features]
-default = []
-tokio = ["dep:tokio"]
-
-[[bin]]
-name = "main"
-required-features = ["tokio"]
