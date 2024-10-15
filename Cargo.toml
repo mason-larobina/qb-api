@@ -1,10 +1,10 @@
 [package]
-name = "qbittorrent"
+name = "qbittp"
 version = "0.3.0"
 authors = ["Mason Larobina <mason.larobina@pm.me>", "VanillaBrooks <brooks@karlik.org>"]
 edition = "2021"
 description = "qBittorrent web api implementation."
-repository = "https://github.com/mason-larobina/qbittorrent"
+repository = "https://github.com/mason-larobina/qbittp"
 license = "MIT"
 
 [dependencies]

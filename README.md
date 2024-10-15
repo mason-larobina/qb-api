@@ -1,8 +1,9 @@
-# qBittorrent
+# qbittp
 
-This is an asynchronous api library for the popular bittorrent client qBittorrent.
+This is a rust async web api library for the popular torrent client
+[qBittorrent](http://qbittorrent.org).
 
-Forked and re-written from: https://github.com/VanillaBrooks/qbittorrent
+Forked from: https://github.com/VanillaBrooks/qbittorrent
 
 ## Implementation
 
