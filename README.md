@@ -1,4 +1,4 @@
-# qbittp
+# qb-api
 
 This is a rust async web api library for the popular torrent client
 [qBittorrent](http://qbittorrent.org).
